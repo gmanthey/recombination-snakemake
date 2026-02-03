@@ -1,0 +1,16 @@
+name: recombination-snakemake
+channels:
+  - bioconda
+  - conda-forge
+  - nodefaults
+dependencies:
+  - python
+  - bioconda::snakemake
+  - bioconda::bcftools
+  - bioconda::snakemake-executor-plugin-slurm
+  - pandas
+  - cython
+  - pytables
+  - pip:
+    - git+https://github.com/popgenmethods/ldpop.git
+    - git+https://github.com/popgenmethods/pyrho.git

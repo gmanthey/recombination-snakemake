@@ -1,0 +1,5 @@
+vcf_file: "/path/to/vcf.gz"
+populations_file: "resources/populations.txt"
+chromosome_file: "resources/chromosomes.txt"
+msmc2_dir: "/path/to/msmc2/dir"
+mu: 4.6e-9 # example for songbird

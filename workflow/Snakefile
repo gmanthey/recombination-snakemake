@@ -1,0 +1,115 @@
+import os
+import pandas as pd
+
+localrules: all, chromosome_vcf
+configfile: "config.yml"
+
+def get_individuals():
+    populations = {}
+    with open(config['populations_file']) as f:
+        for line in f:
+            pop, ind = line.strip().split()
+            if pop not in populations:
+                populations[pop] = []
+            populations[pop].append(ind)
+    
+    return populations
+
+def get_chromosomes():
+    chromosomes = []
+    with open(config["chromosome_file"], 'r') as f:
+        for line in f:
+            line = line.strip()
+            chromosomes.append(line)
+
+    return chromosomes
+
+rule all:
+    input:
+        expand("results/{population}/cM/{chromosome}.gmap", chromosome=get_chromosomes(), population=get_individuals())
+
+rule chromosome_vcf:
+    input:
+        config["vcf_file"],
+        config["populations_file"]
+    output:
+        "results/{population}/vcf/{chromosome}.vcf.gz"
+    log:
+        "log/{population}/vcf/{chromosome}.log"
+    run:
+        individuals = ','.join(get_individuals()[wildcards.population])
+        shell(f"bcftools view -s {individuals} -r {wildcards.chromosome} -Oz -o {output} {input} > {log} 2>&1")
+
+rule make_table:
+    input:
+        expand("{msmc2_dir}/{{population}}/{{population}}.msmc2.final.txt", msmc2_dir = config["msmc2_dir"]),
+        config["populations_file"]
+    output:
+        "results/{population}/lookup_table.hdf"
+    log:
+        "log/{population}/make_table.log"
+    threads: 32
+    resources:
+        runtime="7d",
+        mem="100G"
+    run:
+        num_individuals = len(get_individuals()[wildcards.population])
+        n = num_individuals * 2
+        N = num_individuals * 3
+
+        shell(f'pyrho make_table --samplesize {n} --approx --moran_pop_size {N} --numthreads {threads} --mu {config["mu"]} --outfile {output} --msmc_file {input[0]} > {log} 2>&1')
+
+rule hyperparam:
+    input:
+        "results/{population}/lookup_table.hdf",
+        expand("{msmc2_dir}/{{population}}/{{population}}.msmc2.final.txt", msmc2_dir = config["msmc2_dir"])
+    output:
+        "results/{population}/hyperparam.csv"
+    log:
+        "log/{population}/hyperparam.log"
+    threads: 32
+    resources:
+        runtime="7d",
+        mem="100G"
+    run:
+        num_individuals = len(get_individuals()[wildcards.population])
+        n = num_individuals * 2
+
+        shell(f'pyrho hyperparam --samplesize {n} --numthreads {threads} --blockpenalty 20,25,50 --windowsize 20,25,50 --tablefile {input[0]} --mu {config["mu"]} --ploidy 2 --msmc_file {input[1]} --outfile {output} > {log} 2>&1')
+
+rule optimize:
+    input:
+        "results/{population}/vcf/{chromosome}.vcf.gz",
+        "results/{population}/hyperparam.csv",
+        "results/{population}/lookup_table.hdf"
+    output:
+        "results/{population}/r/{chromosome}.r"
+    threads: 1
+    resources:
+        runtime="7d",
+        mem="20G"
+    log:
+        "log/{population}/r/{chromosome}.optimize.log"
+    script:
+        "scripts/optimize.py"
+
+rule convert:
+    input:
+        "results/{population}/r/{chromosome}.r"
+    output:
+        "results/{population}/cM/{chromosome}.gmap"
+    log:
+        "log/{population}/cM/{chromosome}.convert.log"
+    run:
+        genetic_position = 0
+        with open(input[0], 'r') as in_file, open(output[0], 'w') as out_file:
+            for line in in_file:
+                begin, end, rrate = line.strip().split('\t')
+                
+                w_length = (int(end) - int(begin)) * 1e-6
+
+                cM_MB = float(rrate) * 1e8
+
+                genetic_position += cM_MB * w_length
+
+                out_file.write('\t'.join([end, str(cM_MB), str(genetic_position)]) + '\n')
