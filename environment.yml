@@ -12,5 +12,5 @@ dependencies:
   - cython
   - pytables
   - pip:
-    - git+https://github.com/popgenmethods/ldpop.git
-    - git+https://github.com/popgenmethods/pyrho.git
+    - git+https://github.com/gmanthey/ldpop.git
+    - git+https://github.com/gmanthey/pyrho.git
