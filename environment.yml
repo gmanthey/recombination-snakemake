@@ -5,12 +5,14 @@ channels:
   - nodefaults
 dependencies:
   - python
-  - bioconda::snakemake
   - bioconda::bcftools
-  - bioconda::snakemake-executor-plugin-slurm
   - pandas
   - cython
   - pytables
+  - pip
   - pip:
+    - snakemake
+    - snakemake-executor-plugin-slurm
+    - snakemake-executor-plugin-slurm-jobstep==0.6.0
     - git+https://github.com/gmanthey/ldpop.git
     - git+https://github.com/gmanthey/pyrho.git

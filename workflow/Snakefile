@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-localrules: all, chromosome_vcf
+localrules: all
 configfile: "config.yml"
 
 def get_individuals():
@@ -38,7 +38,7 @@ rule chromosome_vcf:
         "log/{population}/vcf/{chromosome}.log"
     run:
         individuals = ','.join(get_individuals()[wildcards.population])
-        shell(f"bcftools view -s {individuals} -r {wildcards.chromosome} -Oz -o {output} {input} > {log} 2>&1")
+        shell(f'bcftools annotate -x "INFO,FORMAT" -s {individuals} -r {wildcards.chromosome} -Oz -o {output} {input} > {log} 2>&1')
 
 rule make_table:
     input:
