@@ -1,8 +1,9 @@
 import pandas as pd
 from typing import TYPE_CHECKING
+from snakemake import shell
 
 if TYPE_CHECKING:
-    from snakemake.iocontainers import snakemake, shell
+    from snakemake.iocontainers import snakemake
 
 def ranks_per_col(data: pd.DataFrame, sense: list):
     ranks = pd.DataFrame(index=data.index, columns=data.columns, dtype=int)

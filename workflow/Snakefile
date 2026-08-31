@@ -33,12 +33,12 @@ rule chromosome_vcf:
         config["vcf_file"],
         config["populations_file"]
     output:
-        "results/{population}/vcf/{chromosome}.vcf.gz"
+        temp("results/{population}/vcf/{chromosome}.vcf.gz")
     log:
         "log/{population}/vcf/{chromosome}.log"
     run:
         individuals = ','.join(get_individuals()[wildcards.population])
-        shell(f'bcftools annotate -x "INFO,FORMAT" -s {individuals} -r {wildcards.chromosome} -Oz -o {output} {input} > {log} 2>&1')
+        shell(f'bcftools annotate -x "INFO,FORMAT" -r {wildcards.chromosome} {input} 2>{log} | bcftools view -s {individuals} -Oz -o {output} - > {log} 2>&1')
 
 rule make_table:
     input:
